@@ -45,7 +45,7 @@ const CLOSE_BRACKETS = new Set([")", "]", "}"]);
 const MATCHING: Record<string, string> = { "(": ")", "[": "]", "{": "}" };
 
 /** Languages that use ; for line comments */
-const SEMICOLON_COMMENT_LANGS = new Set<Language>(["clojure", "janet", "scheme", "racket"]);
+const SEMICOLON_COMMENT_LANGS = new Set<Language>(["clojure", "scheme", "racket"]);
 /** Languages that use #| |# block comments (nested) */
 const BLOCK_COMMENT_LANGS = new Set<Language>(["scheme", "racket"]);
 /** Languages that use #; datum comments */
