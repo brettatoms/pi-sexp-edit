@@ -15,6 +15,7 @@ import { resolve } from "path";
 
 import { detectLanguage, validate, type Language } from "./core/parser.js";
 import { listForms, replaceForm, insertForm, deleteForm, patchForm, formatFormList } from "./core/forms.js";
+import { unifiedDiff, showAdded, showRemoved } from "./core/diff.js";
 
 const SEXP_EXTENSIONS = /\.(clj|cljc|cljs|janet|scm|ss|rkt)$/;
 
@@ -132,9 +133,11 @@ export default function sexpEditExtension(pi: ExtensionAPI) {
             };
           }
 
+          const oldFormText = result.targetForm.text;
           writeFileSync(filePath, result.content, "utf-8");
+          const diff = unifiedDiff(oldFormText, params.newForm, `${params.file}:${result.targetForm.head} ${result.targetForm.name ?? "(unnamed)"}`);
           return {
-            content: [{ type: "text" as const, text: `Replaced form '${result.targetForm.head} ${result.targetForm.name ?? "(unnamed)"}' at line ${result.targetForm.startLine}.` }],
+            content: [{ type: "text" as const, text: `Replaced form '${result.targetForm.head} ${result.targetForm.name ?? "(unnamed)"}' at line ${result.targetForm.startLine}.\n\n${diff}` }],
             details: { targetForm: result.targetForm.name, line: result.targetForm.startLine },
           };
         }
@@ -160,8 +163,9 @@ export default function sexpEditExtension(pi: ExtensionAPI) {
               };
             }
             writeFileSync(filePath, params.newForm + "\n", "utf-8");
+            const added = showAdded(params.newForm);
             return {
-              content: [{ type: "text" as const, text: `Inserted form into empty file.` }],
+              content: [{ type: "text" as const, text: `Inserted form into empty file.\n\n${added}` }],
               details: {},
             };
           }
@@ -179,8 +183,9 @@ export default function sexpEditExtension(pi: ExtensionAPI) {
           }
 
           writeFileSync(filePath, result.content, "utf-8");
+          const insertedText = showAdded(params.newForm);
           return {
-            content: [{ type: "text" as const, text: `Inserted form ${params.position ?? "after"} '${result.targetForm.head} ${result.targetForm.name ?? "(unnamed)"}' at line ${result.targetForm.startLine}.` }],
+            content: [{ type: "text" as const, text: `Inserted form ${params.position ?? "after"} '${result.targetForm.head} ${result.targetForm.name ?? "(unnamed)"}' at line ${result.targetForm.startLine}.\n\n${insertedText}` }],
             details: { targetForm: result.targetForm.name, line: result.targetForm.startLine },
           };
         }
@@ -199,8 +204,9 @@ export default function sexpEditExtension(pi: ExtensionAPI) {
           }
 
           writeFileSync(filePath, result.content, "utf-8");
+          const deletedText = showRemoved(result.targetForm.text);
           return {
-            content: [{ type: "text" as const, text: `Deleted form '${result.targetForm.head} ${result.targetForm.name ?? "(unnamed)"}' at line ${result.targetForm.startLine}.` }],
+            content: [{ type: "text" as const, text: `Deleted form '${result.targetForm.head} ${result.targetForm.name ?? "(unnamed)"}' at line ${result.targetForm.startLine}.\n\n${deletedText}` }],
             details: { targetForm: result.targetForm.name, line: result.targetForm.startLine },
           };
         }
@@ -225,9 +231,12 @@ export default function sexpEditExtension(pi: ExtensionAPI) {
             };
           }
 
+          const oldFormText = result.targetForm.text;
+          const newFormText = oldFormText.replace(params.oldText, params.newText);
+          const patchDiff = unifiedDiff(oldFormText, newFormText, `${params.file}:${result.targetForm.head} ${result.targetForm.name ?? "(unnamed)"}`);
           writeFileSync(filePath, result.content, "utf-8");
           return {
-            content: [{ type: "text" as const, text: `Patched form '${result.targetForm.head} ${result.targetForm.name ?? "(unnamed)"}' at line ${result.targetForm.startLine}.` }],
+            content: [{ type: "text" as const, text: `Patched form '${result.targetForm.head} ${result.targetForm.name ?? "(unnamed)"}' at line ${result.targetForm.startLine}.\n\n${patchDiff}` }],
             details: { targetForm: result.targetForm.name, line: result.targetForm.startLine },
           };
         }
